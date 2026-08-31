@@ -69,7 +69,7 @@ cd ecom
 
 2. Copy the environment configuration template:
 ```bash
-cp .env.example .env
+cp example.env .env
 ```
 
 3. Install development dependencies:
