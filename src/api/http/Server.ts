@@ -28,7 +28,128 @@ export class EcommerceServer {
     });
   }
 
-  private registerRoutes(): void {
+    // Interactive Web Dashboard & Storefront
+    this.router.register("GET", "/", async (req, res, params, body, c) => {
+      const products = await c.useCases.getProductCatalogUseCase.execute();
+      const categories = (await c.repositories.categoryRepository.findAll?.()) || [];
+      const analytics = await c.services.analyticsService.getSalesSummary();
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enterprise E-Commerce Platform</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-light: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #10b981;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 24px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+    .logo { font-size: 24px; font-weight: 700; color: #60a5fa; display: flex; align-items: center; gap: 8px; }
+    .badge { background: #065f46; color: #34d399; font-size: 12px; padding: 4px 10px; border-radius: 9999px; font-weight: 600; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .stat-card h4 { color: var(--text-muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .stat-card .val { font-size: 28px; font-weight: 700; color: #fff; }
+    .section-title { font-size: 20px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 40px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .card h3 { font-size: 18px; margin-bottom: 8px; color: #fff; }
+    .card p { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; flex-grow: 1; }
+    .price-tag { font-size: 22px; font-weight: 700; color: var(--accent); }
+    .btn { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; text-align: center; text-decoration: none; display: inline-block; }
+    .btn:hover { background: var(--primary-dark); }
+    .api-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 24px; }
+    .endpoint-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .endpoint-item { display: flex; align-items: center; gap: 12px; font-family: monospace; font-size: 14px; }
+    .method { padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; }
+    .get { background: #0369a1; color: #bae6fd; }
+    .post { background: #047857; color: #a7f3d0; }
+    .patch { background: #b45309; color: #fde68a; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">🛒 Enterprise E-Commerce Platform <span class="badge">RUNNING • PORT 3000</span></div>
+      <div>
+        <a href="/api/health" class="btn" target="_blank">Health Check JSON</a>
+        <a href="/api/products" class="btn" style="background:#475569;" target="_blank">Catalog API</a>
+      </div>
+    </header>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h4>Gross Revenue</h4>
+        <div class="val">$${analytics.grossRevenue.toFixed(2)}</div>
+      </div>
+      <div class="stat-card">
+        <h4>Net Revenue</h4>
+        <div class="val">$${analytics.netRevenue.toFixed(2)}</div>
+      </div>
+      <div class="stat-card">
+        <h4>Paid Orders</h4>
+        <div class="val">${analytics.paidOrders}</div>
+      </div>
+      <div class="stat-card">
+        <h4>Published Products</h4>
+        <div class="val">${products.length}</div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>Featured Products Catalog</span>
+      <span style="font-size:14px; color:var(--text-muted);">${categories.length} Categories Available</span>
+    </div>
+
+    <div class="grid">
+      ${products.map(p => `
+        <div class="card">
+          <div>
+            <div style="font-size:12px; color:#60a5fa; font-weight:600; margin-bottom:4px;">SKU: ${p.variants[0]?.sku || 'N/A'}</div>
+            <h3>${p.title}</h3>
+            <p>${p.description}</p>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
+            <div class="price-tag">$${(p.variants[0]?.price || 0).toFixed(2)}</div>
+            <button class="btn" onclick="alert('Item ${p.title} added to cart!')">Add to Cart</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="api-box">
+      <h3 style="margin-bottom: 16px;">Core REST API Endpoints</h3>
+      <ul class="endpoint-list">
+        <li class="endpoint-item"><span class="method get">GET</span> <span>/api/health</span> &mdash; Service health check</li>
+        <li class="endpoint-item"><span class="method get">GET</span> <span>/api/products</span> &mdash; Query published product catalog</li>
+        <li class="endpoint-item"><span class="method get">GET</span> <span>/api/categories</span> &mdash; Retrieve category hierarchy</li>
+        <li class="endpoint-item"><span class="method post">POST</span> <span>/api/auth/register</span> &mdash; Customer registration</li>
+        <li class="endpoint-item"><span class="method post">POST</span> <span>/api/cart/items</span> &mdash; Add SKU to shopping cart</li>
+        <li class="endpoint-item"><span class="method post">POST</span> <span>/api/orders</span> &mdash; Checkout cart and generate order</li>
+        <li class="endpoint-item"><span class="method post">POST</span> <span>/api/payments/process</span> &mdash; Process payment transaction</li>
+        <li class="endpoint-item"><span class="method get">GET</span> <span>/api/analytics/sales</span> &mdash; Real-time revenue analytics</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(html);
+    });
+
     // Health check
     this.router.register("GET", "/api/health", (req, res) => {
       this.router.sendJson(res, 200, {
